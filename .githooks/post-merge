@@ -1,0 +1,9 @@
+#!/bin/sh
+printf '[dotfiles] post-merge: re-stowing into %s\n' "$HOME"
+cd "$HOME/dotfiles" || exit 1
+if stow -t "$HOME" .; then
+  printf '[dotfiles] stow complete\n'
+else
+  printf '[dotfiles] stow failed\n' >&2
+  exit 1
+fi

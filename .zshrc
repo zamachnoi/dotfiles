@@ -120,3 +120,8 @@ export VIRTUAL_ENV_DISABLE_PROMPT=1
 export FZF_DEFAULT_COMMAND='fd --type file --hidden --no-ignore'
 
 export EDITOR=nvim
+
+# Ensure dotfiles managed hooks are enabled on this machine.
+if command -v git >/dev/null 2>&1 && [[ -d "$HOME/dotfiles/.git" && -d "$HOME/dotfiles/.githooks" ]]; then
+  git -C "$HOME/dotfiles" config core.hooksPath .githooks >/dev/null 2>&1 || true
+fi

@@ -20,9 +20,9 @@ vim.lsp.config("tsgo", {
 })
 
 -- Mason packages currently installed:
--- ty, tsgo, lua-language-server, tailwindcss-language-server, biome
+-- ty, tsgo, lua-language-server, tailwindcss-language-server, biome, json-lsp
 -- LSP names below are the corresponding lspconfig server IDs.
-local servers = { "ty", "tsgo", "lua_ls", "tailwindcss", "biome" }
+local servers = { "ty", "tsgo", "lua_ls", "tailwindcss", "biome", "jsonls" }
 vim.lsp.enable(servers)
 
 -- read :h vim.lsp.config for changing options of lsp servers 
