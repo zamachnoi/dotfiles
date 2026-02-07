@@ -24,5 +24,3 @@ vim.lsp.config("tsgo", {
 -- LSP names below are the corresponding lspconfig server IDs.
 local servers = { "ty", "tsgo", "lua_ls", "tailwindcss", "biome", "jsonls" }
 vim.lsp.enable(servers)
-
--- read :h vim.lsp.config for changing options of lsp servers 

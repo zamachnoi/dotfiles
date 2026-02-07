@@ -117,7 +117,7 @@ path+=("$BUN_INSTALL/bin")
 export PATH
 
 export VIRTUAL_ENV_DISABLE_PROMPT=1
-export FZF_DEFAULT_COMMAND='fd --type file --hidden --no-ignore'
+export FZF_DEFAULT_COMMAND='fd --type file --hidden --exclude .git'
 
 export EDITOR=nvim
 
