@@ -1,0 +1,14 @@
+.DS_Store
+
+# Neovim local/runtime artifacts
+.config/nvim/.nvimlog
+.config/nvim/.netrwhist
+.config/nvim/*.log
+.config/nvim/*.tmp
+.config/nvim/*.swp
+.config/nvim/*.swo
+.config/nvim/*.bak
+
+# Editor/project local caches
+.config/nvim/.cache/
+.config/nvim/.luarc.json
