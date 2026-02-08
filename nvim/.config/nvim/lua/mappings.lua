@@ -24,4 +24,19 @@ map("n", "<C-\\>", "<cmd>TmuxNavigatePrevious<CR>", { silent = true, desc = "tmu
 
 map({ "n", "v" }, "<leader>gR", "<cmd>Gitsigns reset_hunk<CR>", { desc = "git reset hunk" })
 
+map({ "n", "v" }, "<leader>mp", "<cmd>MarkdownPreview<CR>", { desc = "markdown preview" })
+
+local builtin = require "telescope.builtin"
+
+vim.keymap.set("n", "<leader>fw", function()
+  builtin.live_grep {
+    additional_args = function()
+      return {
+        "--hidden", -- include dotfiles
+        "--glob=!.git/*", -- exclude .git
+        "--glob=!.git/**", -- exclude .git recursively
+      }
+    end,
+  }
+end, { desc = "telescope live grep (hidden, no .git)" })
 -- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")
