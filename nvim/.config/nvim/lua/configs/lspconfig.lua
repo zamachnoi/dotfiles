@@ -1,9 +1,8 @@
 require("nvchad.configs.lspconfig").defaults()
 
-vim.lsp.config("ty", {
-  cmd = { "ty", "server" },
+vim.lsp.config("basedpyright", {
   filetypes = { "python" },
-  root_markers = { "pyproject.toml", "ty.toml", ".git" },
+  root_markers = { "pyproject.toml", ".git" },
 })
 
 vim.lsp.config("tsgo", {
@@ -20,7 +19,7 @@ vim.lsp.config("tsgo", {
 })
 
 -- Mason packages currently installed:
--- ty, tsgo, lua-language-server, tailwindcss-language-server, biome, json-lsp, zls, markdown-oxide
+-- basedpyright, tsgo, lua-language-server, tailwindcss-language-server, biome, json-lsp, zls, markdown-oxide
 -- LSP names below are the corresponding lspconfig server IDs.
-local servers = { "ty", "tsgo", "lua_ls", "tailwindcss", "biome", "jsonls", "zls", "markdown_oxide" }
+local servers = { "basedpyright", "tsgo", "lua_ls", "tailwindcss", "biome", "jsonls", "zls", "markdown_oxide", "bashls" }
 vim.lsp.enable(servers)
