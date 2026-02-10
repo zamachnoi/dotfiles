@@ -62,6 +62,7 @@ del("n", "<C-h>")
 del("n", "<C-j>")
 del("n", "<C-k>")
 del("n", "<C-l>")
+del("n", "<C-\\>")
 
 map("n", "<C-h>", "<cmd>TmuxNavigateLeft<CR>", { silent = true, desc = "tmux navigate left" })
 map("n", "<C-j>", "<cmd>TmuxNavigateDown<CR>", { silent = true, desc = "tmux navigate down" })

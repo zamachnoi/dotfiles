@@ -16,6 +16,7 @@ return {
         vim.keymap.set({ "n", "t", "v" }, "<C-j>", "<cmd>TmuxNavigateDown<cr>")
         vim.keymap.set({ "n", "t", "v" }, "<C-k>", "<cmd>TmuxNavigateUp<cr>")
         vim.keymap.set({ "n", "t", "v" }, "<C-l>", "<cmd>TmuxNavigateRight<cr>")
+        vim.keymap.set({ "n", "t", "v" }, "<C-\\>", "<cmd>TmuxNavigatePrevious<cr>")
       end
 
       -- Register once globally
