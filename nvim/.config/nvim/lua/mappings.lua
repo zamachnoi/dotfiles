@@ -62,13 +62,11 @@ del("n", "<C-h>")
 del("n", "<C-j>")
 del("n", "<C-k>")
 del("n", "<C-l>")
-del("n", "<C-\\>")
 
 map("n", "<C-h>", "<cmd>TmuxNavigateLeft<CR>", { silent = true, desc = "tmux navigate left" })
 map("n", "<C-j>", "<cmd>TmuxNavigateDown<CR>", { silent = true, desc = "tmux navigate down" })
 map("n", "<C-k>", "<cmd>TmuxNavigateUp<CR>", { silent = true, desc = "tmux navigate up" })
 map("n", "<C-l>", "<cmd>TmuxNavigateRight<CR>", { silent = true, desc = "tmux navigate right" })
-map("n", "<C-\\>", "<cmd>TmuxNavigatePrevious<CR>", { silent = true, desc = "tmux navigate previous" })
 
 map({ "n", "v" }, "<leader>mp", "<cmd>MarkdownPreview<CR>", { desc = "markdown preview" })
 
