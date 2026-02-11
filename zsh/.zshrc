@@ -17,33 +17,39 @@ else
   return
 fi
 
-# Add in zsh plugins
-zinit ice wait lucid
-zinit light zsh-users/zsh-autosuggestions
-zinit ice wait lucid
+# --- Plugins & completion (ORDER MATTERS) ---
+
+# Completion definitions must be available before compinit
 zinit light zsh-users/zsh-completions
-zinit ice wait lucid
+
+# Initialize completion system
+autoload -Uz compinit
+_compdump="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/.zcompdump-${ZSH_VERSION}"
+mkdir -p "${_compdump:h}"
+compinit -d "$_compdump"
+
+# fzf-tab hooks into completion → must be AFTER compinit
 zinit light Aloxaf/fzf-tab
+
+# Other plugins can be async
+# # Autosuggestions wraps widgets; keep it synchronous to avoid Tab weirdness
+zinit light zsh-users/zsh-autosuggestions
 zinit ice wait lucid
 zinit light zsh-users/zsh-syntax-highlighting
 
-# Add in snippets
+# OMZ snippets often add compdefs → replay after compinit
 for _omzp in git sudo command-not-found; do
   zinit ice wait lucid
   zinit snippet "OMZP::${_omzp}"
 done
 
-# Load completions
-autoload -Uz compinit
-_compdump="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/.zcompdump-${ZSH_VERSION}"
-mkdir -p "${_compdump:h}"
-if [[ -f "$_compdump" ]]; then
-  compinit -C -d "$_compdump"
-else
-  compinit -d "$_compdump"
-fi
-
+# Replay any deferred compdefs
 zinit cdreplay -q
+
+
+setopt AUTO_LIST
+# fzf-tab works best when zsh's own menu UI is disabled.
+zstyle ':completion:*' menu no
 
 # Keybindings
 bindkey -e
@@ -67,7 +73,6 @@ setopt hist_find_no_dups
 # Completion styling
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
-zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
 zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 
@@ -78,17 +83,10 @@ alias c='clear'
 
 # Shell integrations
 if [[ -t 0 && -t 1 ]] && command -v fzf >/dev/null 2>&1; then
-  eval "$(fzf --zsh)"
+  # source <(fzf --zsh)
 fi
 if [[ -t 0 && -t 1 ]] && command -v zoxide >/dev/null 2>&1; then
   eval "$(zoxide init --cmd cd zsh)"
-fi
-if command -v thefuck >/dev/null 2>&1; then
-  fuck() {
-    unset -f fuck
-    eval "$(thefuck --alias)"
-    fuck "$@"
-  }
 fi
 
 if command -v oh-my-posh >/dev/null 2>&1; then
@@ -125,3 +123,14 @@ export EDITOR=nvim
 if command -v git >/dev/null 2>&1 && [[ -d "$HOME/dotfiles/.git" && -d "$HOME/dotfiles/.githooks" ]]; then
   git -C "$HOME/dotfiles" config core.hooksPath .githooks >/dev/null 2>&1 || true
 fi
+
+mosh() {
+  local host="$1"
+  if [ -z "$host" ]; then
+    command mosh
+    return
+  fi
+  shift
+  command mosh --server=/users/nzamachn/.local/bin/mosh-server "nzamachn@${host}" "$@"
+}
+

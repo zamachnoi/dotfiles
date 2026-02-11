@@ -1,26 +1,34 @@
 require("nvchad.configs.lspconfig").defaults()
 
-vim.lsp.config("ty", {
-  cmd = { "ty", "server" },
-  filetypes = { "python" },
-  root_markers = { "pyproject.toml", "ty.toml", ".git" },
-})
-
-vim.lsp.config("tsgo", {
-  cmd = { "tsgo", "--lsp", "--stdio" },
-  filetypes = {
-    "javascript",
-    "javascriptreact",
-    "javascript.jsx",
-    "typescript",
-    "typescriptreact",
-    "typescript.tsx",
-  },
-  root_markers = { "tsconfig.json", "jsconfig.json", "package.json", ".git" },
-})
-
 -- Mason packages currently installed:
--- ty, tsgo, lua-language-server, tailwindcss-language-server, biome, json-lsp, zls, markdown-oxide
--- LSP names below are the corresponding lspconfig server IDs.
-local servers = { "ty", "tsgo", "lua_ls", "tailwindcss", "biome", "jsonls", "zls", "markdown_oxide" }
-vim.lsp.enable(servers)
+-- basedpyright, tsgo, lua-language-server, tailwindcss-language-server, biome, json-lsp, zls, markdown-oxide
+local servers = {
+  basedpyright = {
+    filetypes = { "python" },
+    root_markers = { "pyproject.toml", ".git" },
+  },
+  tsgo = {
+    cmd = { "tsgo", "--lsp", "--stdio" },
+    filetypes = {
+      "javascript",
+      "javascriptreact",
+      "javascript.jsx",
+      "typescript",
+      "typescriptreact",
+      "typescript.tsx",
+    },
+    root_markers = { "tsconfig.json", "jsconfig.json", "package.json", ".git" },
+  },
+  lua_ls = {},
+  tailwindcss = {},
+  biome = {},
+  jsonls = {},
+  zls = {},
+  markdown_oxide = {},
+  bashls = {},
+}
+
+for name, opts in pairs(servers) do
+  vim.lsp.config(name, opts)
+  vim.lsp.enable(name)
+end
