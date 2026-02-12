@@ -2,6 +2,8 @@ require "nvchad.autocmds"
 
 local auto_reload = vim.api.nvim_create_augroup("auto_reload_file", { clear = true })
 local custom_recipes = vim.api.nvim_create_augroup("custom_recipes", { clear = true })
+local lsp_hover_on_hold = vim.api.nvim_create_augroup("lsp_hover_on_hold", { clear = true })
+local lspeek = require "utils.lspeek"
 
 vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "CursorHoldI" }, {
   group = auto_reload,
@@ -16,7 +18,7 @@ vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "CursorHo
 
 local function set_kitty_padding(value)
   if vim.fn.executable "kitty" == 1 then
-    vim.fn.system({ "kitty", "@", "set-spacing", "padding=" .. value })
+    vim.fn.system { "kitty", "@", "set-spacing", "padding=" .. value }
   end
 end
 
@@ -56,5 +58,24 @@ vim.api.nvim_create_autocmd("BufEnter", {
       vim.cmd "bw"
       vim.cmd "Nvdash"
     end
+  end,
+})
+
+vim.api.nvim_create_autocmd("CursorHold", {
+  group = lsp_hover_on_hold,
+  callback = function(args)
+    if not lspeek.is_auto_hover_enabled() then
+      return
+    end
+
+    if vim.fn.mode() ~= "n" then
+      return
+    end
+
+    if vim.bo[args.buf].buftype ~= "" then
+      return
+    end
+
+    lspeek.peek_type_or_hover(args.buf)
   end,
 })

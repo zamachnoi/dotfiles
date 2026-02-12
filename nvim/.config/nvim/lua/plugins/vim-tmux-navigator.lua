@@ -1,6 +1,7 @@
 return {
   {
     "christoomey/vim-tmux-navigator",
+    event = "VeryLazy",
     cmd = {
       "TmuxNavigateLeft",
       "TmuxNavigateDown",
@@ -10,21 +11,13 @@ return {
       "TmuxNavigatorProcessList",
     },
     init = function()
-      -- Reusable function to register keymaps in different contexts
-      local function set_keymaps()
-        vim.keymap.set({ "n", "t", "v" }, "<C-h>", "<cmd>TmuxNavigateLeft<cr>")
-        vim.keymap.set({ "n", "t", "v" }, "<C-j>", "<cmd>TmuxNavigateDown<cr>")
-        vim.keymap.set({ "n", "t", "v" }, "<C-k>", "<cmd>TmuxNavigateUp<cr>")
-        vim.keymap.set({ "n", "t", "v" }, "<C-l>", "<cmd>TmuxNavigateRight<cr>")
-      end
-
-      -- Register once globally
-      set_keymaps()
-
-      -- Re-register for terminal buffers to prevent literal command injection
-      vim.api.nvim_create_autocmd({ "TermOpen", "TermEnter" }, {
-        callback = set_keymaps,
-      })
+      vim.g.tmux_navigator_no_mappings = 1
     end,
+    keys = {
+      { "<C-h>", "<cmd>TmuxNavigateLeft<CR>", mode = { "n", "t", "v" }, silent = true, desc = "tmux navigate left" },
+      { "<C-j>", "<cmd>TmuxNavigateDown<CR>", mode = { "n", "t", "v" }, silent = true, desc = "tmux navigate down" },
+      { "<C-k>", "<cmd>TmuxNavigateUp<CR>", mode = { "n", "t", "v" }, silent = true, desc = "tmux navigate up" },
+      { "<C-l>", "<cmd>TmuxNavigateRight<CR>", mode = { "n", "t", "v" }, silent = true, desc = "tmux navigate right" },
+    },
   },
 }

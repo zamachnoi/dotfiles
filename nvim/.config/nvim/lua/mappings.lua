@@ -1,11 +1,8 @@
--- ~/.config/nvim/lua/mappings.lua
-
 require "nvchad.mappings"
-
--- add yours here
 
 local map = vim.keymap.set
 local del = vim.keymap.del
+local lspeek = require "utils.lspeek"
 
 map("n", ";", ":", { desc = "CMD enter command mode" })
 map("i", "jk", "<ESC>")
@@ -56,31 +53,17 @@ local function toggle_lsp_for_current_buffer()
 end
 
 map("n", "<leader>ul", toggle_lsp_for_current_buffer, { desc = "toggle lsp (buffer)" })
+map("n", "<leader>lh", function()
+  lspeek.toggle_auto_hover()
+end, { desc = "toggle auto hover" })
+map("n", "<C-p>", function()
+  lspeek.toggle_peek_type_or_hover(0)
+end, { desc = "toggle type peek" })
 
--- Remove NvChad default window navigation maps and use tmux navigator instead.
-del("n", "<C-h>")
-del("n", "<C-j>")
-del("n", "<C-k>")
-del("n", "<C-l>")
-
-map("n", "<C-h>", "<cmd>TmuxNavigateLeft<CR>", { silent = true, desc = "tmux navigate left" })
-map("n", "<C-j>", "<cmd>TmuxNavigateDown<CR>", { silent = true, desc = "tmux navigate down" })
-map("n", "<C-k>", "<cmd>TmuxNavigateUp<CR>", { silent = true, desc = "tmux navigate up" })
-map("n", "<C-l>", "<cmd>TmuxNavigateRight<CR>", { silent = true, desc = "tmux navigate right" })
-
-map({ "n", "v" }, "<leader>mp", "<cmd>MarkdownPreview<CR>", { desc = "markdown preview" })
-
-local builtin = require "telescope.builtin"
-
-vim.keymap.set("n", "<leader>fw", function()
-  builtin.live_grep {
-    additional_args = function()
-      return {
-        "--hidden", -- include dotfiles
-        "--glob=!.git/*", -- exclude .git
-        "--glob=!.git/**", -- exclude .git recursively
-      }
-    end,
-  }
-end, { desc = "telescope live grep (hidden, no .git)" })
+-- Keep <leader>h free for plugin prefixes and move NvChad horizontal terminal to <leader>j.
+pcall(del, "n", "<leader>h")
+pcall(del, "n", "<leader>j")
+map("n", "<leader>j", function()
+  require("nvchad.term").new { pos = "sp" }
+end, { desc = "terminal new horizontal term" })
 -- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")
