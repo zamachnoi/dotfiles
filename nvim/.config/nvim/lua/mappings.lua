@@ -1,15 +1,38 @@
-require "nvchad.mappings"
-
 local map = vim.keymap.set
 local del = vim.keymap.del
-local lspeek = require "utils.lspeek"
+local lspeek = require("utils.lspeek")
+
+local disabled_telescope_keys = {
+  ["<leader>fw"] = true,
+  ["<leader>fb"] = true,
+  ["<leader>fh"] = true,
+  ["<leader>ma"] = true,
+  ["<leader>fo"] = true,
+  ["<leader>fz"] = true,
+  ["<leader>cm"] = true,
+  ["<leader>gt"] = true,
+  ["<leader>pt"] = true,
+  ["<leader>ff"] = true,
+  ["<leader>fa"] = true,
+}
+
+vim.keymap.set = function(mode, lhs, rhs, opts)
+  local is_normal = mode == "n" or (type(mode) == "table" and vim.tbl_contains(mode, "n"))
+  if is_normal and disabled_telescope_keys[lhs] and type(rhs) == "string" and rhs:find("Telescope", 1, true) then
+    return
+  end
+  return map(mode, lhs, rhs, opts)
+end
+
+require("nvchad.mappings")
+vim.keymap.set = map
 
 map("n", ";", ":", { desc = "CMD enter command mode" })
 map("i", "jk", "<ESC>")
 
 local function toggle_lsp_for_current_buffer()
   local bufnr = vim.api.nvim_get_current_buf()
-  local clients = vim.lsp.get_clients { bufnr = bufnr }
+  local clients = vim.lsp.get_clients({ bufnr = bufnr })
 
   if #clients > 0 then
     local detached_client_ids = {}
@@ -45,7 +68,7 @@ local function toggle_lsp_for_current_buffer()
     pcall(vim.cmd, "LspStart")
   end
 
-  if #vim.lsp.get_clients { bufnr = bufnr } > 0 then
+  if #vim.lsp.get_clients({ bufnr = bufnr }) > 0 then
     vim.notify("LSP enabled for current buffer", vim.log.levels.INFO)
   else
     vim.notify("No LSP server available for this buffer", vim.log.levels.WARN)
@@ -64,6 +87,6 @@ end, { desc = "toggle type peek" })
 pcall(del, "n", "<leader>h")
 pcall(del, "n", "<leader>j")
 map("n", "<leader>j", function()
-  require("nvchad.term").new { pos = "sp" }
+  require("nvchad.term").new({ pos = "sp" })
 end, { desc = "terminal new horizontal term" })
 -- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")

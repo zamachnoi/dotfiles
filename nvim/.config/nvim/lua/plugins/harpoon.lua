@@ -1,31 +1,34 @@
-local function toggle_harpoon_telescope()
+local function toggle_harpoon_picker()
   local harpoon = require "harpoon"
   local list = harpoon:list()
-  local file_paths = {}
+  local items = {}
 
   for _, item in ipairs(list.items) do
     if item and item.value and item.value ~= "" then
-      table.insert(file_paths, item.value)
+      table.insert(items, {
+        file = item.value,
+        text = item.value,
+      })
     end
   end
 
-  if #file_paths == 0 then
+  if #items == 0 then
     vim.notify("Harpoon list is empty", vim.log.levels.INFO)
     return
   end
 
-  local telescope_config = require("telescope.config").values
-
-  require("telescope.pickers")
-    .new({}, {
-      prompt_title = "Harpoon",
-      finder = require("telescope.finders").new_table {
-        results = file_paths,
-      },
-      previewer = telescope_config.file_previewer {},
-      sorter = telescope_config.generic_sorter {},
-    })
-    :find()
+  Snacks.picker {
+    title = "Harpoon",
+    items = items,
+    format = "file",
+    preview = "file",
+    confirm = function(picker, item)
+      picker:close()
+      if item and item.file then
+        vim.cmd.edit(vim.fn.fnameescape(item.file))
+      end
+    end,
+  }
 end
 
 return {
@@ -35,7 +38,6 @@ return {
     event = "VeryLazy",
     dependencies = {
       "nvim-lua/plenary.nvim",
-      "nvim-telescope/telescope.nvim",
     },
     opts = {},
     keys = {
@@ -56,8 +58,8 @@ return {
       },
       {
         "<leader>hh",
-        toggle_harpoon_telescope,
-        desc = "harpoon telescope marks",
+        toggle_harpoon_picker,
+        desc = "harpoon marks picker",
       },
       {
         "<leader>h1",
