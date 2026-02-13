@@ -4,13 +4,13 @@ return {
     cmd = "Octo",
     dependencies = {
       "nvim-lua/plenary.nvim",
-      "nvim-telescope/telescope.nvim",
+      "folke/snacks.nvim",
       "nvim-tree/nvim-web-devicons",
     },
     opts = {
       -- Allow bare :Octo to open the builtin command picker.
       enable_builtin = true,
-      picker = "telescope",
+      picker = "snacks",
     },
     keys = {
       { "<leader>go", "<cmd>Octo<CR>", desc = "octo" },

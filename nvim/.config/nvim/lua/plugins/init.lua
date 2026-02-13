@@ -1,3 +1,16 @@
+local function register_norg_parser()
+  local parsers = require "nvim-treesitter.parsers"
+
+  parsers.norg = {
+    install_info = {
+      url = "https://github.com/nvim-neorg/tree-sitter-norg2",
+      files = { "src/parser.c", "src/scanner.cc" },
+      branch = "main",
+    },
+    filetype = "norg",
+  }
+end
+
 return {
   {
     "stevearc/conform.nvim",
@@ -8,6 +21,29 @@ return {
     "neovim/nvim-lspconfig",
     config = function()
       require "configs.lspconfig"
+    end,
+  },
+
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = function(_, opts)
+      register_norg_parser()
+
+      vim.api.nvim_create_autocmd("User", {
+        group = vim.api.nvim_create_augroup("CustomNorgTreesitterParser", { clear = true }),
+        pattern = "TSUpdate",
+        callback = register_norg_parser,
+      })
+
+      opts.ensure_installed = opts.ensure_installed or {}
+
+      for _, parser in ipairs { "regex", "markdown", "markdown_inline" } do
+        if not vim.tbl_contains(opts.ensure_installed, parser) then
+          table.insert(opts.ensure_installed, parser)
+        end
+      end
+
+      return opts
     end,
   },
 
