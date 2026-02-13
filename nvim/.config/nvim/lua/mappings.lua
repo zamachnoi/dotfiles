@@ -1,31 +1,12 @@
 local map = vim.keymap.set
 local del = vim.keymap.del
 local lspeek = require("utils.lspeek")
-
-local disabled_telescope_keys = {
-  ["<leader>fw"] = true,
-  ["<leader>fb"] = true,
-  ["<leader>fh"] = true,
-  ["<leader>ma"] = true,
-  ["<leader>fo"] = true,
-  ["<leader>fz"] = true,
-  ["<leader>cm"] = true,
-  ["<leader>gt"] = true,
-  ["<leader>pt"] = true,
-  ["<leader>ff"] = true,
-  ["<leader>fa"] = true,
-}
-
-vim.keymap.set = function(mode, lhs, rhs, opts)
-  local is_normal = mode == "n" or (type(mode) == "table" and vim.tbl_contains(mode, "n"))
-  if is_normal and disabled_telescope_keys[lhs] and type(rhs) == "string" and rhs:find("Telescope", 1, true) then
-    return
-  end
-  return map(mode, lhs, rhs, opts)
-end
+local diagnostics = require("utils.diagnostics")
 
 require("nvchad.mappings")
-vim.keymap.set = map
+vim.schedule(function()
+  require("utils.snacks_keys").apply()
+end)
 
 map("n", ";", ":", { desc = "CMD enter command mode" })
 map("i", "jk", "<ESC>")
@@ -65,7 +46,9 @@ local function toggle_lsp_for_current_buffer()
   vim.b[bufnr].lsp_toggled_off_client_ids = nil
 
   if reattached == 0 then
-    pcall(vim.cmd, "LspStart")
+    pcall(function()
+      vim.cmd("LspStart")
+    end)
   end
 
   if #vim.lsp.get_clients({ bufnr = bufnr }) > 0 then
@@ -76,6 +59,8 @@ local function toggle_lsp_for_current_buffer()
 end
 
 map("n", "<leader>ul", toggle_lsp_for_current_buffer, { desc = "toggle lsp (buffer)" })
+map("n", "<leader>dy", diagnostics.copy_current_line, { desc = "copy line diagnostics" })
+map("n", "<leader>dY", diagnostics.copy_current_file, { desc = "copy file diagnostics" })
 map("n", "<leader>lh", function()
   lspeek.toggle_auto_hover()
 end, { desc = "toggle auto hover" })

@@ -1,9 +1,11 @@
 local function register_norg_parser()
-  local parsers = require "nvim-treesitter.parsers"
+  local parsers = require("nvim-treesitter.parsers")
 
   parsers.norg = {
+    tier = 1,
     install_info = {
       url = "https://github.com/nvim-neorg/tree-sitter-norg2",
+      revision = "v0.1.1",
       files = { "src/parser.c", "src/scanner.cc" },
       branch = "main",
     },
@@ -14,13 +16,13 @@ end
 return {
   {
     "stevearc/conform.nvim",
-    opts = require "configs.conform",
+    opts = require("configs.conform"),
   },
 
   {
     "neovim/nvim-lspconfig",
     config = function()
-      require "configs.lspconfig"
+      require("configs.lspconfig")
     end,
   },
 
@@ -37,7 +39,7 @@ return {
 
       opts.ensure_installed = opts.ensure_installed or {}
 
-      for _, parser in ipairs { "regex", "markdown", "markdown_inline" } do
+      for _, parser in ipairs({ "regex", "markdown", "markdown_inline" }) do
         if not vim.tbl_contains(opts.ensure_installed, parser) then
           table.insert(opts.ensure_installed, parser)
         end
@@ -62,7 +64,7 @@ return {
   {
     "lewis6991/gitsigns.nvim",
     opts = function(_, opts)
-      local gs = require "gitsigns"
+      local gs = require("gitsigns")
 
       opts.attach_to_untracked = true
       opts.on_attach = function(bufnr)
@@ -73,17 +75,17 @@ return {
         -- Hunk navigation
         map("n", "]h", function()
           if vim.wo.diff then
-            vim.cmd.normal { "]c", bang = true }
+            vim.cmd.normal({ "]c", bang = true })
           else
-            gs.next_hunk()
+            gs.nav_hunk("next")
           end
         end, "git next hunk")
 
         map("n", "[h", function()
           if vim.wo.diff then
-            vim.cmd.normal { "[c", bang = true }
+            vim.cmd.normal({ "[c", bang = true })
           else
-            gs.prev_hunk()
+            gs.nav_hunk("prev")
           end
         end, "git prev hunk")
 
@@ -92,21 +94,21 @@ return {
         map({ "n", "x" }, "<leader>gr", ":Gitsigns reset_hunk<CR>", "git reset hunk")
         map("n", "<leader>gS", gs.stage_buffer, "git stage buffer")
         map("n", "<leader>gR", gs.reset_buffer, "git reset buffer")
-        map("n", "<leader>gu", gs.undo_stage_hunk, "git undo stage hunk")
+        map("n", "<leader>gu", gs.stage_hunk, "git undo stage hunk")
 
         -- Inspect changes
-        map("n", "<leader>gp", gs.preview_hunk, "git preview hunk")
+        map("n", "<leader>gp", gs.preview_hunk_inline, "git preview hunk")
         map("n", "<leader>gb", gs.blame_line, "git blame line")
         map("n", "<leader>gB", gs.toggle_current_line_blame, "git toggle line blame")
         map("n", "<leader>gd", gs.diffthis, "git diff this")
         map("n", "<leader>gD", function()
-          gs.diffthis "~"
+          gs.diffthis("~")
         end, "git diff this (~)")
 
         -- Lists and views
         map("n", "<leader>gq", gs.setqflist, "git hunks to quickfix")
         map("n", "<leader>gQ", gs.setloclist, "git hunks to loclist")
-        map("n", "<leader>gx", gs.toggle_deleted, "git toggle deleted")
+        map("n", "<leader>gx", "<cmd>Gitsigns toggle_deleted<CR>", "git toggle deleted")
 
         -- Text object
         map({ "o", "x" }, "ih", gs.select_hunk, "git select hunk")
