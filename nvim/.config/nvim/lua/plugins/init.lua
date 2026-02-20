@@ -20,6 +20,14 @@ return {
   },
 
   {
+    "mfussenegger/nvim-lint",
+    event = { "BufReadPost", "BufWritePost", "BufNewFile" },
+    config = function()
+      require("configs.lint").setup()
+    end,
+  },
+
+  {
     "neovim/nvim-lspconfig",
     config = function()
       require("configs.lspconfig")
