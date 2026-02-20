@@ -11,6 +11,8 @@ M.base46 = {
   hl_override = {
     Comment = { italic = true },
     ["@comment"] = { italic = true },
+    LazyButton = { bg = "one_bg", fg = "white" },
+    LazyButtonActive = { bg = "green", fg = "black", bold = true },
   },
 }
 
