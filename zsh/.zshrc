@@ -134,3 +134,113 @@ mosh() {
   command mosh --server=/users/nzamachn/.local/bin/mosh-server "nzamachn@${host}" "$@"
 }
 
+
+# Deploy current branch to orb-dev2 by first syncing /data/obelisk-nzamachn over SSH,
+# then running the Ansible playbook against that path.
+deploy_orb_dev2() {
+  local repo_root branch force=false git_status counts ahead behind
+  local remote_host="orb-dev2"
+  local remote_repo="/data/obelisk-nzamachn"
+  local ansible_playbook="$HOME/.venvs/ansible-2.9/bin/ansible-playbook"
+
+  case "${1:-}" in
+    --force|-f)
+      force=true
+      shift
+      ;;
+    "")
+      ;;
+    *)
+      echo "usage: ddev2 [--force]"
+      return 2
+      ;;
+  esac
+
+  if (( $# > 0 )); then
+    echo "usage: ddev2 [--force]"
+    return 2
+  fi
+
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    echo "deploy_orb_dev2: run this from inside the obelisk git repo"
+    return 1
+  }
+
+  [[ -f "$repo_root/ansible/deploy-playbook.yml" ]] || {
+    echo "deploy_orb_dev2: ansible/deploy-playbook.yml not found under $repo_root"
+    return 1
+  }
+
+  [[ -x "$ansible_playbook" ]] || {
+    echo "deploy_orb_dev2: $ansible_playbook not found or not executable"
+    return 1
+  }
+
+  branch="$(git -C "$repo_root" symbolic-ref --short HEAD 2>/dev/null)" || {
+    echo "deploy_orb_dev2: detached HEAD; checkout a branch first"
+    return 1
+  }
+
+  if ! git -C "$repo_root" ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+    echo "deploy_orb_dev2: origin/$branch not found. Push the branch first."
+    return 1
+  fi
+
+  if [[ "$force" != true ]]; then
+    git_status="$(git -C "$repo_root" status --porcelain --untracked-files=normal)"
+    if [[ -n "$git_status" ]]; then
+      echo "deploy_orb_dev2: worktree is not clean. Commit/stash first, or use ddev2 --force."
+      return 1
+    fi
+
+    git -C "$repo_root" fetch origin "$branch" --quiet || {
+      echo "deploy_orb_dev2: failed to fetch origin/$branch"
+      return 1
+    }
+
+    counts="$(git -C "$repo_root" rev-list --left-right --count "origin/$branch...HEAD" 2>/dev/null)" || {
+      echo "deploy_orb_dev2: failed to compare local branch with origin/$branch"
+      return 1
+    }
+
+    behind="${counts%%[[:space:]]*}"
+    ahead="${counts##*[[:space:]]}"
+
+    if [[ "$ahead" != "0" ]]; then
+      echo "deploy_orb_dev2: local branch is $ahead commit(s) ahead of origin/$branch. Push first, or use ddev2 --force."
+      return 1
+    fi
+
+    if [[ "$behind" != "0" ]]; then
+      echo "deploy_orb_dev2: local branch is behind origin/$branch by $behind commit(s); deploying origin state."
+    fi
+  fi
+
+  ssh "$remote_host" 'bash -s' -- "$branch" "$remote_repo" <<'REMOTE_SYNC' || {
+set -euo pipefail
+umask 022
+branch="$1"
+repo="$2"
+
+cd "$repo"
+git fetch origin "$branch"
+if git show-ref --verify --quiet "refs/heads/$branch"; then
+  git checkout "$branch"
+else
+  git checkout -b "$branch" --track "origin/$branch"
+fi
+git pull --ff-only origin "$branch"
+REMOTE_SYNC
+    echo "deploy_orb_dev2: failed to sync $remote_repo on $remote_host"
+    return 1
+  }
+
+  (
+    cd "$repo_root/ansible" || exit 1
+    "$ansible_playbook" deploy-playbook.yml -i inventory.yml \
+      --extra-vars "target_host=orb-dev2"
+  )
+}
+
+alias ansible-playbook="$HOME/.venvs/ansible-2.9/bin/ansible-playbook"
+alias ddev2='deploy_orb_dev2'

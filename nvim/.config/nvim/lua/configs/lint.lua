@@ -117,49 +117,52 @@ local function llm_tool_cmd(exe_name)
   return workspace.resolve_llm_tool(current_bufname(), exe_name)
 end
 
-local function make_orb_mypy_linter(source_name, targets)
+local function make_orb_mypy_linter(source_name)
   return {
-    cmd = orb_python_cmd,
+    cmd = "sh",
     stdin = false,
-    append_fname = false,
+    append_fname = true,
     ignore_exitcode = true,
     stream = "stdout",
-    args = (function()
-      local args = {
-        "-m",
-        "mypy",
-        "--soft-error-limit=-1",
-        "--cache-dir=./_gen_mypy_cache",
-        "--show-column-numbers",
-      }
-
-      vim.list_extend(args, targets)
-      return args
-    end)(),
+    args = {
+      "-c",
+      function()
+        local python = vim.fn.shellescape(orb_python_cmd())
+        return table.concat({
+          python .. " -m mypy",
+          "--soft-error-limit=-1",
+          "--cache-dir=./_gen_mypy_cache",
+          "--show-column-numbers",
+          "--follow-imports=silent",
+          '"$0"',
+          "2>&1",
+          "|",
+          python .. " -m mypy_baseline filter",
+          "--baseline-path mypy-baseline.txt",
+          "--allow-unsynced",
+          "--hide-stats",
+        }, " ")
+      end,
+    },
     parser = function(output)
       return parse_mypy(output, source_name)
     end,
   }
 end
 
-local function make_orb_pylint_linter(source_name, targets)
+local function make_orb_pylint_linter(source_name)
   return {
     cmd = orb_python_cmd,
     stdin = false,
-    append_fname = false,
+    append_fname = true,
     ignore_exitcode = true,
     stream = "stdout",
-    args = (function()
-      local args = {
-        "-m",
-        "pylint",
-        "--reports=no",
-        "--persistent=n",
-      }
-
-      vim.list_extend(args, targets)
-      return args
-    end)(),
+    args = {
+      "-m",
+      "pylint",
+      "--reports=no",
+      "--persistent=n",
+    },
     parser = function(output)
       return parse_pylint(output, source_name)
     end,
@@ -167,15 +170,8 @@ local function make_orb_pylint_linter(source_name, targets)
 end
 
 local function register_linters()
-  lint.linters.mypy_orb_backend = make_orb_mypy_linter("mypy[backend+shared]", { "backend", "shared" })
-  lint.linters.mypy_orb_cron = make_orb_mypy_linter("mypy[cron+shared]", { "cron", "shared" })
-  lint.linters.mypy_orb_hypervisor =
-    make_orb_mypy_linter("mypy[hypervisor-agent+shared]", { "hypervisor-agent", "shared" })
-
-  lint.linters.pylint_orb_backend = make_orb_pylint_linter("pylint[backend+shared]", { "backend", "shared" })
-  lint.linters.pylint_orb_cron = make_orb_pylint_linter("pylint[cron+shared]", { "cron", "shared" })
-  lint.linters.pylint_orb_hypervisor =
-    make_orb_pylint_linter("pylint[hypervisor-agent+shared]", { "hypervisor-agent", "shared" })
+  lint.linters.mypy_orb = make_orb_mypy_linter("mypy")
+  lint.linters.pylint_orb = make_orb_pylint_linter("pylint")
 
   lint.linters.ruff_llm = {
     cmd = function()
@@ -222,28 +218,7 @@ local function linters_for(bufnr)
 
   local orb_context = workspace.orb_context(filename)
   if orb_context then
-    if orb_context == "backend" then
-      return { "mypy_orb_backend", "pylint_orb_backend" }
-    end
-
-    if orb_context == "cron" then
-      return { "mypy_orb_cron", "pylint_orb_cron" }
-    end
-
-    if orb_context == "hypervisor-agent" then
-      return { "mypy_orb_hypervisor", "pylint_orb_hypervisor" }
-    end
-
-    if orb_context == "shared" then
-      return {
-        "mypy_orb_backend",
-        "pylint_orb_backend",
-        "mypy_orb_cron",
-        "pylint_orb_cron",
-        "mypy_orb_hypervisor",
-        "pylint_orb_hypervisor",
-      }
-    end
+    return { "mypy_orb", "pylint_orb" }
   end
 
   if workspace.is_llm_file(filename) then

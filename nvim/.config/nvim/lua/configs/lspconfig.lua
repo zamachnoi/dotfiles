@@ -3,8 +3,22 @@ require("nvchad.configs.lspconfig").defaults()
 local workspace = require("configs.python_workspace")
 
 -- Mason packages currently installed:
--- pylsp, ruff, basedpyright, tsgo, lua-language-server, tailwindcss-language-server, biome, json-lsp, zls, markdown-oxide
+-- ruff, basedpyright, tsgo, lua-language-server, tailwindcss-language-server, biome, json-lsp, zls, markdown-oxide
 local zig_exe_path = vim.fn.exepath("zig")
+
+local function python_root_dir(bufnr, on_dir)
+  local root = workspace.find_python_root(vim.api.nvim_buf_get_name(bufnr))
+  if root then
+    on_dir(root)
+  end
+end
+
+local function llm_root_dir(bufnr, on_dir)
+  local root = workspace.find_llm_root(vim.api.nvim_buf_get_name(bufnr))
+  if root then
+    on_dir(root)
+  end
+end
 
 local function get_zls_build_on_save_args(root_dir)
   if not root_dir then
@@ -32,24 +46,9 @@ local function get_zls_build_on_save_args(root_dir)
 end
 
 local servers = {
-  pylsp = {
-    filetypes = { "python" },
-    root_dir = function(bufnr, on_dir)
-      local filename = vim.api.nvim_buf_get_name(bufnr)
-      local root = workspace.find_orb_root(filename)
-      if root and workspace.orb_context(filename) then
-        on_dir(root)
-      end
-    end,
-  },
   ruff = {
     filetypes = { "python" },
-    root_dir = function(bufnr, on_dir)
-      local root = workspace.find_llm_root(vim.api.nvim_buf_get_name(bufnr))
-      if root then
-        on_dir(root)
-      end
-    end,
+    root_dir = llm_root_dir,
     before_init = function(_, config)
       config.cmd = {
         workspace.resolve_llm_tool(config.root_dir, "ruff"),
@@ -59,13 +58,8 @@ local servers = {
   },
   basedpyright = {
     filetypes = { "python" },
-    root_dir = function(bufnr, on_dir)
-      local root = workspace.find_llm_root(vim.api.nvim_buf_get_name(bufnr))
-      if root then
-        on_dir(root)
-      end
-    end,
-    -- Keep llm_query_tool diagnostics sourced from ruff+ty; use basedpyright for nav/intel.
+    root_dir = python_root_dir,
+    -- Keep diagnostics sourced from ruff+ty; use basedpyright for nav/intel.
     handlers = {
       ["textDocument/publishDiagnostics"] = function() end,
     },

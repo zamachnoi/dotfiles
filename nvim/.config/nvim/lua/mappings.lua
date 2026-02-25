@@ -67,6 +67,7 @@ end, { desc = "toggle auto hover" })
 map("n", "<C-p>", function()
   lspeek.toggle_peek_type_or_hover(0)
 end, { desc = "toggle type peek" })
+map("n", "<leader>tc", "<cmd>tabclose<CR>", { desc = "tab close current" })
 
 -- Keep <leader>h free for plugin prefixes and move NvChad horizontal terminal to <leader>j.
 pcall(del, "n", "<leader>h")
