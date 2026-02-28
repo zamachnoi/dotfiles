@@ -28,6 +28,7 @@ return {
       scope = { enabled = true },
       scroll = { enabled = false },
       words = { enabled = true },
+      image = { enabled = true },
     },
   },
 }

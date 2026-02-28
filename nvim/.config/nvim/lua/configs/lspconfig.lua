@@ -1,7 +1,7 @@
 require("nvchad.configs.lspconfig").defaults()
 
 -- Mason packages currently installed:
--- basedpyright, tsgo, lua-language-server, tailwindcss-language-server, biome, json-lsp, zls, markdown-oxide
+-- basedpyright, tsgo, lua-language-server, tailwindcss-language-server, biome, json-lsp, zls, markdown-oxide, rust-analyzer
 local zig_exe_path = vim.fn.exepath("zig")
 
 local function get_zls_build_on_save_args(root_dir)
@@ -87,6 +87,7 @@ local servers = {
     },
   },
   markdown_oxide = {},
+  rust_analyzer = {},
   bashls = {},
 }
 
