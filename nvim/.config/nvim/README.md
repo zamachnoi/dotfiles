@@ -21,6 +21,19 @@ Implementation details:
 - Auto-hover autocmd: `lua/autocmds.lua`
 - Keymaps: `lua/mappings.lua`
 
+# Cheatsheet Float
+
+This config includes a small local `cheatsheet.nvim` plugin that opens a centered floating Q&A window backed by `codex exec`.
+
+- `<leader>at`: Toggle the Cheatsheet window.
+- `<leader>aq`: Prompt for a question and append the answer to the transcript.
+- `<leader>ar`: Clear the transcript.
+- `:Cheatsheet`: Toggle the window, or pass an inline prompt with `:Cheatsheet your question`.
+- `:CheatsheetAsk`: Ask a question from the command line or via `vim.ui.input`.
+- Inside the window: `a` asks, `c` clears, `q` closes.
+
+The window uses `codex exec` in `read-only` sandbox mode, which keeps the UI simple and better suited to quick, basic questions inside Neovim.
+
 # Credits
 
 1) Lazyvim starter https://github.com/LazyVim/starter as nvchad's starter was inspired by Lazyvim's . It made a lot of things easier!

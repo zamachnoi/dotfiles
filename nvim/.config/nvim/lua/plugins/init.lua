@@ -16,15 +16,8 @@ end
 return {
   {
     "stevearc/conform.nvim",
+    event = { "BufReadPre", "BufNewFile" },
     opts = require("configs.conform"),
-  },
-
-  {
-    "mfussenegger/nvim-lint",
-    event = { "BufReadPost", "BufWritePost", "BufNewFile" },
-    config = function()
-      require("configs.lint").setup()
-    end,
   },
 
   {

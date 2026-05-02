@@ -1,22 +1,78 @@
 require("nvchad.configs.lspconfig").defaults()
 
-local workspace = require("configs.python_workspace")
-
--- Mason packages currently installed:
--- ruff, basedpyright, tsgo, lua-language-server, tailwindcss-language-server, biome, json-lsp, zls, markdown-oxide
 local zig_exe_path = vim.fn.exepath("zig")
+local path_sep = package.config:sub(1, 1)
+local env_path_sep = vim.fn.has("win32") == 1 and ";" or ":"
 
-local function python_root_dir(bufnr, on_dir)
-  local root = workspace.find_python_root(vim.api.nvim_buf_get_name(bufnr))
-  if root then
-    on_dir(root)
-  end
+local function disable_lsp_formatting(client)
+  client.server_capabilities.documentFormattingProvider = false
+  client.server_capabilities.documentRangeFormattingProvider = false
 end
 
-local function llm_root_dir(bufnr, on_dir)
-  local root = workspace.find_llm_root(vim.api.nvim_buf_get_name(bufnr))
-  if root then
-    on_dir(root)
+local function is_dir(path)
+  local stat = vim.uv.fs_stat(path)
+  return stat and stat.type == "directory"
+end
+
+local function parent_dir(path)
+  local parent = vim.fs.dirname(path)
+  if not parent or parent == "" or parent == path then
+    return nil
+  end
+
+  return parent
+end
+
+local function prepend_env_path(path, current)
+  if not current or current == "" then
+    return path
+  end
+
+  local parts = vim.split(current, env_path_sep, { plain = true, trimempty = true })
+  if vim.tbl_contains(parts, path) then
+    return current
+  end
+
+  return path .. env_path_sep .. current
+end
+
+local function find_python_venv_root(start_dir)
+  local dir = start_dir
+  while dir do
+    if is_dir(dir .. path_sep .. ".venv") then
+      return dir
+    end
+
+    dir = parent_dir(dir)
+  end
+
+  return nil
+end
+
+local function python_cmd_env(root_dir, current_env)
+  local venv_root = find_python_venv_root(root_dir)
+  if not venv_root then
+    return current_env, nil
+  end
+
+  local venv_dir = venv_root .. path_sep .. ".venv"
+  local bin_dir = venv_dir .. path_sep .. (vim.fn.has("win32") == 1 and "Scripts" or "bin")
+  local env = vim.tbl_extend("force", vim.fn.environ(), current_env or {})
+  env.VIRTUAL_ENV = venv_dir
+  env.PATH = prepend_env_path(bin_dir, env.PATH)
+  return env, venv_root
+end
+
+local function python_server_cmd(exe, args)
+  return function(dispatchers, config)
+    local env, venv_root = python_cmd_env(config.root_dir, config.cmd_env)
+    local cmd = vim.list_extend({ exe }, args or {})
+
+    return vim.lsp.rpc.start(cmd, dispatchers, {
+      cwd = venv_root or config.cmd_cwd,
+      env = env,
+      detached = config.detached,
+    })
   end
 end
 
@@ -47,37 +103,23 @@ end
 
 local servers = {
   ruff = {
-    filetypes = { "python" },
-    root_dir = llm_root_dir,
-    before_init = function(_, config)
-      config.cmd = {
-        workspace.resolve_llm_tool(config.root_dir, "ruff"),
-        "server",
-      }
-    end,
+    cmd = python_server_cmd("ruff", { "server" }),
+    root_markers = { "pyproject.toml", "ruff.toml", ".ruff.toml", "uv.lock", "requirements.txt", ".venv", ".git" },
   },
-  basedpyright = {
-    filetypes = { "python" },
-    root_dir = python_root_dir,
-    -- Keep diagnostics sourced from ruff+ty; use basedpyright for nav/intel.
-    handlers = {
-      ["textDocument/publishDiagnostics"] = function() end,
-    },
-    settings = {
-      python = {
-        analysis = {
-          typeCheckingMode = "off",
-          autoSearchPaths = true,
-          useLibraryCodeForTypes = true,
-        },
-      },
-      basedpyright = {
-        disableOrganizeImports = true,
-      },
+  ty = {
+    cmd = python_server_cmd("ty", { "server" }),
+    root_markers = {
+      "ty.toml",
+      "pyproject.toml",
+      "uv.lock",
+      "setup.py",
+      "setup.cfg",
+      "requirements.txt",
+      ".venv",
+      ".git",
     },
   },
-  tsgo = {
-    cmd = { "tsgo", "--lsp", "--stdio" },
+  vtsls = {
     filetypes = {
       "javascript",
       "javascriptreact",
@@ -85,9 +127,77 @@ local servers = {
       "typescriptreact",
     },
     root_markers = { "tsconfig.json", "jsconfig.json", "package.json", ".git" },
+    on_attach = disable_lsp_formatting,
+    settings = {
+      vtsls = {
+        autoUseWorkspaceTsdk = true,
+      },
+      typescript = {
+        updateImportsOnFileMove = { enabled = "always" },
+      },
+      javascript = {
+        updateImportsOnFileMove = { enabled = "always" },
+      },
+    },
   },
-  tailwindcss = {},
-  biome = {},
+  tailwindcss = {
+    filetypes = {
+      "astro",
+      "css",
+      "html",
+      "javascript",
+      "javascriptreact",
+      "scss",
+      "typescript",
+      "typescriptreact",
+      "vue",
+    },
+    root_markers = {
+      "tailwind.config.js",
+      "tailwind.config.cjs",
+      "tailwind.config.mjs",
+      "tailwind.config.ts",
+      "tailwind.config.cts",
+      "tailwind.config.mts",
+      "postcss.config.js",
+      "postcss.config.cjs",
+      "postcss.config.mjs",
+      "postcss.config.ts",
+      "postcss.config.cts",
+      "postcss.config.mts",
+      "package.json",
+      ".git",
+    },
+    on_attach = disable_lsp_formatting,
+  },
+  eslint = {
+    filetypes = {
+      "javascript",
+      "javascriptreact",
+      "typescript",
+      "typescriptreact",
+    },
+    root_markers = {
+      "eslint.config.js",
+      "eslint.config.cjs",
+      "eslint.config.mjs",
+      "eslint.config.ts",
+      "eslint.config.cts",
+      "eslint.config.mts",
+      ".eslintrc",
+      ".eslintrc.js",
+      ".eslintrc.cjs",
+      ".eslintrc.json",
+      ".eslintrc.yaml",
+      ".eslintrc.yml",
+      "package.json",
+      ".git",
+    },
+    settings = {
+      workingDirectory = { mode = "auto" },
+    },
+    on_attach = disable_lsp_formatting,
+  },
   jsonls = {},
   lua_ls = {
     settings = {

@@ -15,6 +15,17 @@ return {
       picker = {
         enabled = true,
         cwd = startup_cwd,
+        matcher = {
+          fuzzy = true,
+          smartcase = true,
+          ignorecase = true,
+          sort_empty = false,
+          filename_bonus = true,
+          file_pos = true,
+          cwd_bonus = false,
+          frecency = false,
+          history_bonus = false,
+        },
         sources = {
           recent = {
             filter = { cwd = true },

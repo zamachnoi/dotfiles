@@ -131,14 +131,14 @@ mosh() {
     return
   fi
   shift
-  command mosh --server=/users/nzamachn/.local/bin/mosh-server "nzamachn@${host}" "$@"
+  command mosh --server=/users/nzamachn/.local/bin/mosh-server \
+    "nzamachn@${host}" -- bash -il
 }
-
 
 # Deploy current branch to orb-dev2 by first syncing /data/obelisk-nzamachn over SSH,
 # then running the Ansible playbook against that path.
 deploy_orb_dev2() {
-  local repo_root branch force=false git_status counts ahead behind
+  local repo_root branch upstream_ref origin_branch force=false git_status counts ahead behind
   local remote_host="orb-dev2"
   local remote_repo="/data/obelisk-nzamachn"
   local ansible_playbook="$HOME/.venvs/ansible-2.9/bin/ansible-playbook"
@@ -181,8 +181,20 @@ deploy_orb_dev2() {
     return 1
   }
 
-  if ! git -C "$repo_root" ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
-    echo "deploy_orb_dev2: origin/$branch not found. Push the branch first."
+  upstream_ref="$(git -C "$repo_root" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null)" || {
+    echo "deploy_orb_dev2: branch $branch has no upstream. Set it to origin/<remote-branch> first."
+    return 1
+  }
+
+  if [[ "$upstream_ref" != origin/* ]]; then
+    echo "deploy_orb_dev2: branch $branch tracks $upstream_ref, expected origin/*"
+    return 1
+  fi
+
+  origin_branch="${upstream_ref#origin/}"
+
+  if ! git -C "$repo_root" ls-remote --exit-code --heads origin "$origin_branch" >/dev/null 2>&1; then
+    echo "deploy_orb_dev2: origin/$origin_branch not found. Push the branch first."
     return 1
   fi
 
@@ -193,13 +205,13 @@ deploy_orb_dev2() {
       return 1
     fi
 
-    git -C "$repo_root" fetch origin "$branch" --quiet || {
-      echo "deploy_orb_dev2: failed to fetch origin/$branch"
+    git -C "$repo_root" fetch origin "$origin_branch" --quiet || {
+      echo "deploy_orb_dev2: failed to fetch origin/$origin_branch"
       return 1
     }
 
-    counts="$(git -C "$repo_root" rev-list --left-right --count "origin/$branch...HEAD" 2>/dev/null)" || {
-      echo "deploy_orb_dev2: failed to compare local branch with origin/$branch"
+    counts="$(git -C "$repo_root" rev-list --left-right --count "origin/$origin_branch...HEAD" 2>/dev/null)" || {
+      echo "deploy_orb_dev2: failed to compare local branch with origin/$origin_branch"
       return 1
     }
 
@@ -207,16 +219,16 @@ deploy_orb_dev2() {
     ahead="${counts##*[[:space:]]}"
 
     if [[ "$ahead" != "0" ]]; then
-      echo "deploy_orb_dev2: local branch is $ahead commit(s) ahead of origin/$branch. Push first, or use ddev2 --force."
+      echo "deploy_orb_dev2: local branch is $ahead commit(s) ahead of origin/$origin_branch. Push first, or use ddev2 --force."
       return 1
     fi
 
     if [[ "$behind" != "0" ]]; then
-      echo "deploy_orb_dev2: local branch is behind origin/$branch by $behind commit(s); deploying origin state."
+      echo "deploy_orb_dev2: local branch is behind origin/$origin_branch by $behind commit(s); deploying origin state."
     fi
   fi
 
-  ssh "$remote_host" 'bash -s' -- "$branch" "$remote_repo" <<'REMOTE_SYNC' || {
+  ssh "$remote_host" 'bash -s' -- "$origin_branch" "$remote_repo" <<'REMOTE_SYNC' || {
 set -euo pipefail
 umask 022
 branch="$1"
@@ -242,5 +254,58 @@ REMOTE_SYNC
   )
 }
 
+deploy_orb_tst() {
+  local repo_root target_ref ansible_playbook="$HOME/.venvs/ansible-2.9/bin/ansible-playbook"
+
+  case "${1:-}" in
+    ""|--help|-h)
+      echo "usage: dtst <branch>"
+      return 2
+      ;;
+    -*)
+      echo "usage: dtst <branch>"
+      return 2
+      ;;
+    *)
+      target_ref="$1"
+      shift
+      ;;
+  esac
+
+  if (( $# > 0 )); then
+    echo "usage: dtst <branch>"
+    return 2
+  fi
+
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+  if [[ -z "$repo_root" || ! -f "$repo_root/ansible/deploy-playbook.yml" ]]; then
+    repo_root="$HOME/work/obelisk/obelisk"
+  fi
+
+  [[ -f "$repo_root/ansible/deploy-playbook.yml" ]] || {
+    echo "deploy_orb_tst: ansible/deploy-playbook.yml not found under $repo_root"
+    return 1
+  }
+
+  [[ -x "$ansible_playbook" ]] || {
+    echo "deploy_orb_tst: $ansible_playbook not found or not executable"
+    return 1
+  }
+
+  (
+    cd "$repo_root/ansible" || exit 1
+    "$ansible_playbook" -i inventory.yml deploy-playbook.yml \
+      --extra-vars "target_host=orb-tst target_ref=$target_ref target_tag=false"
+  )
+}
+
 alias ansible-playbook="$HOME/.venvs/ansible-2.9/bin/ansible-playbook"
 alias ddev2='deploy_orb_dev2'
+alias dtst='deploy_orb_tst'
+
+ export NVM_DIR=~/.nvm
+ [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+
+# T3 Code desktop launcher
+alias t3code='T3CODE_TELEMETRY_ENABLED=false "/Users/nzamachn/Downloads/T3 Code (Alpha).app/Contents/MacOS/T3 Code (Alpha)"'
