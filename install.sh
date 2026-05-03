@@ -274,6 +274,102 @@ install_system_package() {
   install_system_packages "$1"
 }
 
+tree_sitter_supports_build() {
+  command -v tree-sitter >/dev/null 2>&1 &&
+    tree-sitter --help 2>/dev/null | grep -Eq '^[[:space:]]+build[[:space:]]'
+}
+
+tree_sitter_release_asset() {
+  case "$(uname -s)" in
+    Linux) os="linux" ;;
+    Darwin) os="macos" ;;
+    *)
+      printf 'Unsupported OS for tree-sitter-cli release: %s\n' "$(uname -s)" >&2
+      return 1
+      ;;
+  esac
+
+  case "$(uname -m)" in
+    x86_64 | amd64) arch="x64" ;;
+    aarch64 | arm64) arch="arm64" ;;
+    armv6l | armv7l)
+      if [ "$os" = "linux" ]; then
+        arch="arm"
+      else
+        printf 'Unsupported architecture for tree-sitter-cli release: %s\n' "$(uname -m)" >&2
+        return 1
+      fi
+      ;;
+    i386 | i686)
+      if [ "$os" = "linux" ]; then
+        arch="x86"
+      else
+        printf 'Unsupported architecture for tree-sitter-cli release: %s\n' "$(uname -m)" >&2
+        return 1
+      fi
+      ;;
+    ppc64 | ppc64le | powerpc64 | powerpc64le)
+      if [ "$os" = "linux" ]; then
+        arch="powerpc64"
+      else
+        printf 'Unsupported architecture for tree-sitter-cli release: %s\n' "$(uname -m)" >&2
+        return 1
+      fi
+      ;;
+    *)
+      printf 'Unsupported architecture for tree-sitter-cli release: %s\n' "$(uname -m)" >&2
+      return 1
+      ;;
+  esac
+
+  printf 'tree-sitter-cli-%s-%s.zip\n' "$os" "$arch"
+}
+
+install_tree_sitter_cli() {
+  if tree_sitter_supports_build; then
+    return
+  fi
+
+  if command -v tree-sitter >/dev/null 2>&1; then
+    printf '%s\n' "tree-sitter found, but it does not support the build subcommand; installing a newer tree-sitter-cli..."
+  else
+    printf '%s\n' "tree-sitter not found; installing tree-sitter-cli..."
+  fi
+
+  asset="$(tree_sitter_release_asset)" || return 1
+  tmp_dir="$(mktemp -d)"
+  archive="$tmp_dir/$asset"
+
+  if ! download_file "https://github.com/tree-sitter/tree-sitter/releases/latest/download/$asset" "$archive"; then
+    rm -rf "$tmp_dir"
+    return 1
+  fi
+
+  if ! unzip -q "$archive" -d "$tmp_dir"; then
+    rm -rf "$tmp_dir"
+    return 1
+  fi
+
+  mkdir -p "$HOME/.local/bin"
+  if [ ! -f "$tmp_dir/tree-sitter" ]; then
+    printf '%s\n' "Warning: tree-sitter-cli release did not contain a tree-sitter binary."
+    rm -rf "$tmp_dir"
+    return 1
+  fi
+
+  if ! install "$tmp_dir/tree-sitter" "$HOME/.local/bin/tree-sitter"; then
+    rm -rf "$tmp_dir"
+    return 1
+  fi
+
+  rm -rf "$tmp_dir"
+
+  if ! tree_sitter_supports_build; then
+    printf '%s\n' "Warning: tree-sitter is still unavailable or too old after installing tree-sitter-cli."
+    return 1
+  fi
+}
+
 package_for_tool() {
   tool="$1"
 
@@ -313,6 +409,11 @@ package_for_tool() {
 
 install_system_tool() {
   tool="$1"
+
+  if [ "$tool" = "tree-sitter" ]; then
+    install_tree_sitter_cli
+    return
+  fi
 
   if command -v "$tool" >/dev/null 2>&1; then
     return
