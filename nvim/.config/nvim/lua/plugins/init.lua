@@ -13,6 +13,19 @@ local function register_norg_parser()
   }
 end
 
+local treesitter_parsers = {
+  "bash",
+  "go",
+  "javascript",
+  "markdown",
+  "markdown_inline",
+  "norg",
+  "python",
+  "regex",
+  "typescript",
+  "zig",
+}
+
 return {
   {
     "stevearc/conform.nvim",
@@ -50,9 +63,10 @@ return {
         callback = register_norg_parser,
       })
 
+      opts.auto_install = true
       opts.ensure_installed = opts.ensure_installed or {}
 
-      for _, parser in ipairs({ "regex", "markdown", "markdown_inline" }) do
+      for _, parser in ipairs(treesitter_parsers) do
         if not vim.tbl_contains(opts.ensure_installed, parser) then
           table.insert(opts.ensure_installed, parser)
         end
