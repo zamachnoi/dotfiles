@@ -94,6 +94,37 @@ install_lazygit() {
   fi
 }
 
+install_system_package() {
+  package="$1"
+
+  if command -v brew >/dev/null 2>&1; then
+    brew install "$package"
+  elif command -v apt-get >/dev/null 2>&1; then
+    run_as_root apt-get update
+    run_as_root apt-get install -y "$package"
+  elif command -v dnf >/dev/null 2>&1; then
+    run_as_root dnf install -y "$package"
+  elif command -v pacman >/dev/null 2>&1; then
+    run_as_root pacman -S --needed --noconfirm "$package"
+  elif command -v zypper >/dev/null 2>&1; then
+    run_as_root zypper install -y "$package"
+  elif command -v apk >/dev/null 2>&1; then
+    run_as_root apk add "$package"
+  else
+    printf 'No supported package manager found; install %s manually.\n' "$package"
+    exit 1
+  fi
+}
+
+install_unzip() {
+  if command -v unzip >/dev/null 2>&1; then
+    return
+  fi
+
+  printf '%s\n' "unzip not found; installing..."
+  install_system_package unzip
+}
+
 install_oh_my_posh() {
   if command -v oh-my-posh >/dev/null 2>&1; then
     return
@@ -145,6 +176,7 @@ if ! command -v stow >/dev/null 2>&1; then
 fi
 
 install_lazygit
+install_unzip
 install_oh_my_posh
 
 for package in $STOW_PACKAGES; do
