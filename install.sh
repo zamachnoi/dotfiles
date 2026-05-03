@@ -3,7 +3,7 @@ set -eu
 
 DOTFILES_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 TPM_DIR="$HOME/.tmux/plugins/tpm"
-STOW_PACKAGES="zsh tmux ohmyposh"
+STOW_PACKAGES="zsh tmux ohmyposh nvim"
 BACKUP_DIR="$HOME/.dotfiles-backups/$(date +%Y%m%d-%H%M%S)"
 SYSTEM_TOOLS="git tmux fzf fd rg zoxide stow curl tar unzip"
 
