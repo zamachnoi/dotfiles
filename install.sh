@@ -6,9 +6,47 @@ TPM_DIR="$HOME/.tmux/plugins/tpm"
 STOW_PACKAGES="zsh tmux ohmyposh nvim"
 BACKUP_DIR="$HOME/.dotfiles-backups/$(date +%Y%m%d-%H%M%S)"
 SYSTEM_TOOLS="git tmux fzf fd rg zoxide stow curl tar unzip zig python3 tree-sitter"
+GIT_USER_NAME="Nick Zamachnoi"
+GIT_PROFILE=""
 
 PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 export PATH
+
+usage() {
+  printf '%s\n' "Usage: $0 [--profile home|work]"
+}
+
+parse_args() {
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --profile)
+        if [ "$#" -lt 2 ]; then
+          usage
+          exit 1
+        fi
+        GIT_PROFILE="$2"
+        shift 2
+        ;;
+      --profile=*)
+        GIT_PROFILE="${1#--profile=}"
+        shift
+        ;;
+      home | work)
+        GIT_PROFILE="$1"
+        shift
+        ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      *)
+        printf 'Unknown option: %s\n' "$1"
+        usage
+        exit 1
+        ;;
+    esac
+  done
+}
 
 run_as_root() {
   if [ "$(id -u)" -eq 0 ]; then
@@ -39,6 +77,51 @@ warn_install_failed() {
   name="$1"
 
   printf 'Warning: could not install %s; continuing.\n' "$name"
+}
+
+select_git_profile() {
+  if [ -n "$GIT_PROFILE" ] || [ ! -t 0 ]; then
+    return
+  fi
+
+  while [ -z "$GIT_PROFILE" ]; do
+    printf '%s' "Git profile [home/work]: "
+    IFS= read -r GIT_PROFILE
+
+    case "$GIT_PROFILE" in
+      home | work) ;;
+      *)
+        printf '%s\n' "Please enter home or work."
+        GIT_PROFILE=""
+        ;;
+    esac
+  done
+}
+
+configure_git_identity() {
+  select_git_profile
+
+  case "$GIT_PROFILE" in
+    home)
+      git_email="nickzamachnoi@gmail.com"
+      ;;
+    work)
+      git_email="nzamachn@cisco.com"
+      ;;
+    "")
+      printf '%s\n' "No git profile selected; leaving global git identity unchanged."
+      return
+      ;;
+    *)
+      printf 'Invalid git profile: %s\n' "$GIT_PROFILE"
+      printf '%s\n' "Use home or work."
+      exit 1
+      ;;
+  esac
+
+  git config --global user.name "$GIT_USER_NAME"
+  git config --global user.email "$git_email"
+  printf 'Configured global git identity for %s.\n' "$GIT_PROFILE"
 }
 
 install_lazygit_from_github() {
@@ -131,13 +214,15 @@ install_neovim_linux() {
       ;;
   esac
 
-  printf '%s\n' "Installing Neovim latest release..."
+  nvim_version="v0.11.7"
+
+  printf '%s\n' "Installing Neovim ${nvim_version}..."
 
   tmp_dir="$(mktemp -d)"
   archive="$tmp_dir/nvim-linux-x86_64.tar.gz"
 
   if ! download_file \
-    "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz" \
+    "https://github.com/neovim/neovim/releases/download/${nvim_version}/nvim-linux-x86_64.tar.gz" \
     "$archive"; then
     rm -rf "$tmp_dir"
     return 1
@@ -353,7 +438,10 @@ backup_package_targets() {
   done
 }
 
+parse_args "$@"
+
 install_system_tools
+configure_git_identity
 install_python_venv_support || warn_install_failed "Python venv support"
 install_lazygit || warn_install_failed "lazygit"
 install_oh_my_posh || warn_install_failed "oh-my-posh"
