@@ -5,7 +5,7 @@ DOTFILES_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 TPM_DIR="$HOME/.tmux/plugins/tpm"
 STOW_PACKAGES="zsh tmux ohmyposh nvim"
 BACKUP_DIR="$HOME/.dotfiles-backups/$(date +%Y%m%d-%H%M%S)"
-SYSTEM_TOOLS="git tmux fzf fd rg zoxide stow curl tar unzip"
+SYSTEM_TOOLS="git tmux fzf fd rg zoxide stow curl tar unzip zig python3"
 
 PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 export PATH
@@ -126,26 +126,28 @@ install_neovim_linux() {
   rm -rf "$tmp_dir"
 }
 
-install_system_package() {
-  package="$1"
-
+install_system_packages() {
   if command -v brew >/dev/null 2>&1; then
-    brew install "$package"
+    brew install "$@"
   elif command -v apt-get >/dev/null 2>&1; then
     run_as_root apt-get update
-    run_as_root apt-get install -y "$package"
+    run_as_root apt-get install -y "$@"
   elif command -v dnf >/dev/null 2>&1; then
-    run_as_root dnf install -y "$package"
+    run_as_root dnf install -y "$@"
   elif command -v pacman >/dev/null 2>&1; then
-    run_as_root pacman -S --needed --noconfirm "$package"
+    run_as_root pacman -S --needed --noconfirm "$@"
   elif command -v zypper >/dev/null 2>&1; then
-    run_as_root zypper install -y "$package"
+    run_as_root zypper install -y "$@"
   elif command -v apk >/dev/null 2>&1; then
-    run_as_root apk add "$package"
+    run_as_root apk add "$@"
   else
-    printf 'No supported package manager found; install %s manually.\n' "$package"
+    printf '%s\n' "No supported package manager found; install the missing packages manually."
     exit 1
   fi
+}
+
+install_system_package() {
+  install_system_packages "$1"
 }
 
 package_for_tool() {
@@ -161,6 +163,13 @@ package_for_tool() {
       ;;
     rg)
       printf '%s\n' "ripgrep"
+      ;;
+    python3)
+      if command -v pacman >/dev/null 2>&1; then
+        printf '%s\n' "python"
+      else
+        printf '%s\n' "python3"
+      fi
       ;;
     *)
       printf '%s\n' "$tool"
@@ -189,6 +198,44 @@ install_system_tools() {
   for tool in $SYSTEM_TOOLS; do
     install_system_tool "$tool"
   done
+}
+
+install_python_venv_support() {
+  tmp_dir="$(mktemp -d)"
+
+  if python3 -m venv "$tmp_dir/venv" >/dev/null 2>&1; then
+    rm -rf "$tmp_dir"
+    return
+  fi
+
+  rm -rf "$tmp_dir"
+  printf '%s\n' "python3 venv support not found; installing..."
+
+  if command -v brew >/dev/null 2>&1; then
+    brew install python
+  elif command -v apt-get >/dev/null 2>&1; then
+    install_system_packages python3-venv
+  elif command -v dnf >/dev/null 2>&1; then
+    install_system_packages python3
+  elif command -v pacman >/dev/null 2>&1; then
+    install_system_packages python
+  elif command -v zypper >/dev/null 2>&1; then
+    install_system_packages python3
+  elif command -v apk >/dev/null 2>&1; then
+    install_system_packages python3 py3-pip
+  else
+    printf '%s\n' "No supported package manager found; install Python venv support manually."
+    exit 1
+  fi
+
+  tmp_dir="$(mktemp -d)"
+  if ! python3 -m venv "$tmp_dir/venv" >/dev/null 2>&1; then
+    rm -rf "$tmp_dir"
+    printf '%s\n' "python3 venv support is still unavailable after installation."
+    exit 1
+  fi
+
+  rm -rf "$tmp_dir"
 }
 
 install_oh_my_posh() {
@@ -237,6 +284,7 @@ backup_package_targets() {
 }
 
 install_system_tools
+install_python_venv_support
 install_lazygit
 install_oh_my_posh
 install_neovim_linux
