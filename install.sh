@@ -5,6 +5,7 @@ DOTFILES_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 TPM_DIR="$HOME/.tmux/plugins/tpm"
 STOW_PACKAGES="zsh tmux ohmyposh"
 BACKUP_DIR="$HOME/.dotfiles-backups/$(date +%Y%m%d-%H%M%S)"
+SYSTEM_TOOLS="git tmux nvim fzf fd rg zoxide stow curl tar unzip"
 
 PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 export PATH
@@ -119,13 +120,50 @@ install_system_package() {
   fi
 }
 
-install_unzip() {
-  if command -v unzip >/dev/null 2>&1; then
+package_for_tool() {
+  tool="$1"
+
+  case "$tool" in
+    nvim)
+      printf '%s\n' "neovim"
+      ;;
+    fd)
+      if command -v apt-get >/dev/null 2>&1; then
+        printf '%s\n' "fd-find"
+      else
+        printf '%s\n' "fd"
+      fi
+      ;;
+    rg)
+      printf '%s\n' "ripgrep"
+      ;;
+    *)
+      printf '%s\n' "$tool"
+      ;;
+  esac
+}
+
+install_system_tool() {
+  tool="$1"
+
+  if command -v "$tool" >/dev/null 2>&1; then
     return
   fi
 
-  printf '%s\n' "unzip not found; installing..."
-  install_system_package unzip
+  package="$(package_for_tool "$tool")"
+  printf '%s\n' "$tool not found; installing $package..."
+  install_system_package "$package"
+
+  if [ "$tool" = "fd" ] && ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
+  fi
+}
+
+install_system_tools() {
+  for tool in $SYSTEM_TOOLS; do
+    install_system_tool "$tool"
+  done
 }
 
 install_oh_my_posh() {
@@ -173,14 +211,14 @@ backup_package_targets() {
   done
 }
 
+install_system_tools
+install_lazygit
+install_oh_my_posh
+
 if ! command -v stow >/dev/null 2>&1; then
   printf '%s\n' "stow not found; install GNU Stow before running this script."
   exit 1
 fi
-
-install_lazygit
-install_unzip
-install_oh_my_posh
 
 for package in $STOW_PACKAGES; do
   backup_package_targets "$package"
