@@ -309,3 +309,6 @@ alias dtst='deploy_orb_tst'
 
 # T3 Code desktop launcher
 alias t3code='T3CODE_TELEMETRY_ENABLED=false "/Users/nzamachn/Downloads/T3 Code (Alpha).app/Contents/MacOS/T3 Code (Alpha)"'
+
+# Machine-local zsh customizations. Do not commit this file.
+[[ -f "$HOME/.zshrc_CUSTOM" ]] && source "$HOME/.zshrc_CUSTOM"

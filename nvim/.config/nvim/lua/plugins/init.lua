@@ -21,6 +21,17 @@ return {
   },
 
   {
+    "mason-org/mason.nvim",
+    event = "VeryLazy",
+    opts = function()
+      return require("nvchad.configs.mason")
+    end,
+    config = function(_, opts)
+      require("configs.mason").setup(opts)
+    end,
+  },
+
+  {
     "neovim/nvim-lspconfig",
     config = function()
       require("configs.lspconfig")
