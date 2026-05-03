@@ -3,7 +3,7 @@ set -eu
 
 DOTFILES_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 TPM_DIR="$HOME/.tmux/plugins/tpm"
-STOW_PACKAGES="zsh tmux"
+STOW_PACKAGES="zsh tmux ohmyposh"
 BACKUP_DIR="$HOME/.dotfiles-backups/$(date +%Y%m%d-%H%M%S)"
 
 run_as_root() {
@@ -12,7 +12,7 @@ run_as_root() {
   elif command -v sudo >/dev/null 2>&1; then
     sudo "$@"
   else
-    printf '%s\n' "sudo not found; run this script as root or install lazygit manually."
+    printf '%s\n' "sudo not found; run this script as root or install the missing tool manually."
     return 1
   fi
 }
@@ -26,7 +26,7 @@ download_file() {
   elif command -v wget >/dev/null 2>&1; then
     wget -qO "$output" "$url"
   else
-    printf '%s\n' "curl or wget is required to download lazygit."
+    printf '%s\n' "curl or wget is required to download missing tools."
     return 1
   fi
 }
@@ -94,6 +94,26 @@ install_lazygit() {
   fi
 }
 
+install_oh_my_posh() {
+  if command -v oh-my-posh >/dev/null 2>&1; then
+    return
+  fi
+
+  printf '%s\n' "oh-my-posh not found; installing..."
+
+  if command -v brew >/dev/null 2>&1; then
+    brew install oh-my-posh
+  else
+    tmp_dir="$(mktemp -d)"
+    installer="$tmp_dir/oh-my-posh-install.sh"
+
+    download_file "https://ohmyposh.dev/install.sh" "$installer"
+    sh "$installer" -d "$HOME/.local/bin"
+
+    rm -rf "$tmp_dir"
+  fi
+}
+
 backup_package_targets() {
   package="$1"
 
@@ -125,6 +145,7 @@ if ! command -v stow >/dev/null 2>&1; then
 fi
 
 install_lazygit
+install_oh_my_posh
 
 for package in $STOW_PACKAGES; do
   backup_package_targets "$package"
