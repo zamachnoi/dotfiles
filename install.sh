@@ -139,7 +139,7 @@ install_oh_my_posh() {
     installer="$tmp_dir/oh-my-posh-install.sh"
 
     download_file "https://ohmyposh.dev/install.sh" "$installer"
-    sh "$installer" -d "$HOME/.local/bin"
+    bash "$installer" -d "$HOME/.local/bin"
 
     rm -rf "$tmp_dir"
   fi
