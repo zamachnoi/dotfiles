@@ -6,6 +6,9 @@ TPM_DIR="$HOME/.tmux/plugins/tpm"
 STOW_PACKAGES="zsh tmux ohmyposh"
 BACKUP_DIR="$HOME/.dotfiles-backups/$(date +%Y%m%d-%H%M%S)"
 
+PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+export PATH
+
 run_as_root() {
   if [ "$(id -u)" -eq 0 ]; then
     "$@"
