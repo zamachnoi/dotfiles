@@ -6,6 +6,7 @@ TPM_DIR="$HOME/.tmux/plugins/tpm"
 STOW_PACKAGES="zsh tmux ohmyposh nvim"
 BACKUP_DIR="$HOME/.dotfiles-backups/$(date +%Y%m%d-%H%M%S)"
 SYSTEM_TOOLS="git tmux fzf fd rg zoxide stow curl tar unzip zig python3 tree-sitter"
+LINUX_SYSTEM_TOOLS="bwrap"
 GIT_USER_NAME="Nick Zamachnoi"
 GIT_PROFILE=""
 
@@ -98,7 +99,17 @@ select_git_profile() {
   done
 }
 
+git_identity_configured() {
+  git config --global --get user.name >/dev/null 2>&1 &&
+    git config --global --get user.email >/dev/null 2>&1
+}
+
 configure_git_identity() {
+  if [ -z "$GIT_PROFILE" ] && git_identity_configured; then
+    printf '%s\n' "Global git identity already configured; leaving it unchanged."
+    return
+  fi
+
   select_git_profile
 
   case "$GIT_PROFILE" in
@@ -214,15 +225,13 @@ install_neovim_linux() {
       ;;
   esac
 
-  nvim_version="v0.11.7"
-
-  printf '%s\n' "Installing Neovim ${nvim_version}..."
+  printf '%s\n' "Installing latest stable Neovim..."
 
   tmp_dir="$(mktemp -d)"
   archive="$tmp_dir/nvim-linux-x86_64.tar.gz"
 
   if ! download_file \
-    "https://github.com/neovim/neovim/releases/download/${nvim_version}/nvim-linux-x86_64.tar.gz" \
+    "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz" \
     "$archive"; then
     rm -rf "$tmp_dir"
     return 1
@@ -279,6 +288,9 @@ package_for_tool() {
     rg)
       printf '%s\n' "ripgrep"
       ;;
+    bwrap)
+      printf '%s\n' "bubblewrap"
+      ;;
     python3)
       if command -v pacman >/dev/null 2>&1; then
         printf '%s\n' "python"
@@ -332,6 +344,14 @@ install_system_tools() {
       missing_tools="$missing_tools $tool"
     fi
   done
+
+  if [ "$(uname -s)" = "Linux" ]; then
+    for tool in $LINUX_SYSTEM_TOOLS; do
+      if ! install_system_tool "$tool"; then
+        missing_tools="$missing_tools $tool"
+      fi
+    done
+  fi
 
   if [ -n "$missing_tools" ]; then
     printf 'Warning: some tools are still missing:%s\n' "$missing_tools"

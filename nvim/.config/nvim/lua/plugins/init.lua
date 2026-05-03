@@ -53,7 +53,7 @@ return {
 
   {
     "nvim-treesitter/nvim-treesitter",
-    branch = "master",
+    lazy = false,
     opts = function(_, opts)
       register_norg_parser()
 
