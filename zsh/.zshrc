@@ -2,6 +2,7 @@
 typeset -U path PATH
 
 path=("$HOME/.local/bin" "$HOME/bin" $path)
+[[ "$OSTYPE" == linux* && -d "/opt/nvim-linux-x86_64/bin" ]] && path+=("/opt/nvim-linux-x86_64/bin")
 
 # Set the directory we want to store zinit and plugins
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"

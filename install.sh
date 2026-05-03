@@ -5,7 +5,7 @@ DOTFILES_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 TPM_DIR="$HOME/.tmux/plugins/tpm"
 STOW_PACKAGES="zsh tmux ohmyposh"
 BACKUP_DIR="$HOME/.dotfiles-backups/$(date +%Y%m%d-%H%M%S)"
-SYSTEM_TOOLS="git tmux nvim fzf fd rg zoxide stow curl tar unzip"
+SYSTEM_TOOLS="git tmux fzf fd rg zoxide stow curl tar unzip"
 
 PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 export PATH
@@ -98,6 +98,34 @@ install_lazygit() {
   fi
 }
 
+install_neovim_linux() {
+  if [ "$(uname -s)" != "Linux" ]; then
+    return
+  fi
+
+  case "$(uname -m)" in
+    x86_64 | amd64) ;;
+    *)
+      printf 'Unsupported architecture for Neovim tarball: %s\n' "$(uname -m)"
+      return 1
+      ;;
+  esac
+
+  printf '%s\n' "Installing Neovim latest release..."
+
+  tmp_dir="$(mktemp -d)"
+  archive="$tmp_dir/nvim-linux-x86_64.tar.gz"
+
+  download_file \
+    "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz" \
+    "$archive"
+
+  run_as_root rm -rf /opt/nvim-linux-x86_64
+  run_as_root tar -C /opt -xzf "$archive"
+
+  rm -rf "$tmp_dir"
+}
+
 install_system_package() {
   package="$1"
 
@@ -124,9 +152,6 @@ package_for_tool() {
   tool="$1"
 
   case "$tool" in
-    nvim)
-      printf '%s\n' "neovim"
-      ;;
     fd)
       if command -v apt-get >/dev/null 2>&1; then
         printf '%s\n' "fd-find"
@@ -214,6 +239,7 @@ backup_package_targets() {
 install_system_tools
 install_lazygit
 install_oh_my_posh
+install_neovim_linux
 
 if ! command -v stow >/dev/null 2>&1; then
   printf '%s\n' "stow not found; install GNU Stow before running this script."
