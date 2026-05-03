@@ -17,6 +17,54 @@ run_as_root() {
   fi
 }
 
+download_file() {
+  url="$1"
+  output="$2"
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL -o "$output" "$url"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO "$output" "$url"
+  else
+    printf '%s\n' "curl or wget is required to download lazygit."
+    return 1
+  fi
+}
+
+install_lazygit_from_github() {
+  case "$(uname -m)" in
+    x86_64 | amd64) lazygit_arch="x86_64" ;;
+    aarch64 | arm64) lazygit_arch="arm64" ;;
+    armv6l | armv7l) lazygit_arch="armv6" ;;
+    i386 | i686) lazygit_arch="32-bit" ;;
+    *)
+      printf 'Unsupported architecture for lazygit release: %s\n' "$(uname -m)"
+      return 1
+      ;;
+  esac
+
+  tmp_dir="$(mktemp -d)"
+  release_json="$tmp_dir/release.json"
+  archive="$tmp_dir/lazygit.tar.gz"
+
+  download_file "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" "$release_json"
+
+  lazygit_version="$(sed -n 's/.*"tag_name":[[:space:]]*"v\([^"]*\)".*/\1/p' "$release_json" | head -n 1)"
+  if [ -z "$lazygit_version" ]; then
+    printf '%s\n' "Could not determine latest lazygit version."
+    rm -rf "$tmp_dir"
+    return 1
+  fi
+
+  download_file \
+    "https://github.com/jesseduffield/lazygit/releases/download/v${lazygit_version}/lazygit_${lazygit_version}_Linux_${lazygit_arch}.tar.gz" \
+    "$archive"
+  tar xf "$archive" -C "$tmp_dir" lazygit
+  run_as_root install "$tmp_dir/lazygit" -D -t /usr/local/bin/
+
+  rm -rf "$tmp_dir"
+}
+
 install_lazygit() {
   if command -v lazygit >/dev/null 2>&1; then
     return
@@ -28,7 +76,10 @@ install_lazygit() {
     brew install lazygit
   elif command -v apt-get >/dev/null 2>&1; then
     run_as_root apt-get update
-    run_as_root apt-get install -y lazygit
+    if ! run_as_root apt-get install -y lazygit; then
+      printf '%s\n' "lazygit is not available from apt; installing the latest GitHub release instead..."
+      install_lazygit_from_github
+    fi
   elif command -v dnf >/dev/null 2>&1; then
     run_as_root dnf install -y lazygit
   elif command -v pacman >/dev/null 2>&1; then
