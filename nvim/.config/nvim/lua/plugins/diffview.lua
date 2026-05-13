@@ -1,3 +1,22 @@
+local function apply_diff_theme()
+  require("utils.diff_theme").apply()
+end
+
+local function setup_diff_theme_autocmds()
+  local group = vim.api.nvim_create_augroup("CustomDiffviewTheme", { clear = true })
+
+  vim.api.nvim_create_autocmd("ColorScheme", {
+    group = group,
+    callback = apply_diff_theme,
+  })
+
+  vim.api.nvim_create_autocmd("User", {
+    group = group,
+    pattern = "NvThemeReload",
+    callback = apply_diff_theme,
+  })
+end
+
 return {
   {
     "sindrets/diffview.nvim",
@@ -13,6 +32,10 @@ return {
       "nvim-lua/plenary.nvim",
     },
     init = function()
+      apply_diff_theme()
+      vim.schedule(apply_diff_theme)
+      setup_diff_theme_autocmds()
+
       vim.api.nvim_create_user_command("DiffviewMaster", function()
         vim.cmd("DiffviewOpen master...HEAD")
       end, { desc = "Open diffview against master" })
@@ -30,6 +53,9 @@ return {
           position = "left",
           width = 35,
         },
+      },
+      hooks = {
+        view_opened = apply_diff_theme,
       },
     },
     keys = {
